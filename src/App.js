@@ -10,6 +10,9 @@ function App() {
   const [mapReady, setMapReady] = useState(false);
   const [googlePlacesData, setGooglePlacesData] = useState();
 
+  const mapBoxKey = process.env.REACT_APP_MAPBOX_API_KEY
+  const googleAPIKey = process.env.REACT_APP_GOOGLE_PLACES_API_KEY
+
   const getGoogleData = useCallback(async () =>{
     const url = "https://places.googleapis.com/v1/places:searchNearby"
     try{
@@ -17,7 +20,7 @@ function App() {
           method: "POST",
           headers: {
             "Content-Type": "application/json; charset=utf-8",
-            "X-Goog-Api-Key": "AIzaSyD0W4qlHjxSLFmF_pHgHJIvCX860VSbMgY",
+            "X-Goog-Api-Key": googleAPIKey,
             "X-Goog-FieldMask": "places.displayName,places.id,places.formattedAddress,places.userRatingCount,places.rating,places.location"
           },
           body: JSON.stringify({
@@ -53,7 +56,7 @@ function App() {
 
   //load map
   useEffect(() => {
-    mapboxgl.accessToken = 'pk.eyJ1IjoicDJrYXJpbWkiLCJhIjoiY21mbjRzaWZ0MDhjNDJrb2xoeTcwY28ybiJ9.o3Ty91rm4Drve48saUZ3fg'
+    mapboxgl.accessToken = mapBoxKey
     mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
       center: [-79.395978, 43.663448], //long, lat
