@@ -14,9 +14,103 @@
   color: black;
 }
 
+.content-container {
+  position: relative;
+  height: 75vh;
+  display: flex;
+  padding: 20px 0;
+  overflow: hidden;
+  justify-content: center;
+}
+
 #Map-container {
-  height: 80vh;
+  flex: 0 0 80vw;
+  height: 100%;
   width: 80vw;
   background-color: black;
-  margin: 0 auto;
+  margin: 0 5vw;
+  transition: all 0.3s ease;
+  overflow: hidden;
 }
+
+#Map-container.selected {
+  flex: 0 0 75vw;
+  width: 75vw;
+  margin: 0 0 0 0;
+}
+
+#Map-container .mapboxgl-canvas {
+  height: 100% !important;
+}
+
+#Map-container .mapboxgl-ctrl-attrib {
+  background: rgba(255,255,255,0.7);
+  font-size: 11px;
+  z-index: 5;
+  margin: 0;
+}
+
+.details-panel {
+  flex: 0 0 25vw;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 25vw;
+  height: 100%;
+  background-color: lightgray;
+  padding: 20px;
+  /* box-shadow: -2px 0 10px rgba(0,0,0,0.1); */
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  overflow-y: auto;
+  z-index: 1;
+}
+
+.details-panel.visible {
+  transform: translateX(0);
+}
+
+/* .place-details {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* space between items 
+  font-size: 14px;
+  color: #333;
+} */
+
+/* one-row header */
+.place-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* name fills remaining space, truncates if too long */
+.place-name {
+  font-size: 22px;        /* tweak as you wish */
+  font-weight: 700;
+  color: #333;
+  flex: 1 1 auto;         /* take leftover space */
+  min-width: 0;           /* REQUIRED so ellipsis works in flex items */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* stars + reviews stay intact on the right */
+.place-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;         /* do not shrink */
+}
+
+.place-rating { font-size: 16px; color: #666; }
+.place-user-count { font-size: 14px; color: #888; }
+
+/* (optional) on narrow panels stack to two lines instead of truncating meta */
+@media (max-width: 900px) {
+  .place-header { flex-wrap: wrap; }
+  .place-name { flex-basis: 100%; white-space: normal; }
+}
+
