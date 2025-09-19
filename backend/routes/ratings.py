@@ -56,3 +56,48 @@ def rate_ambiance(place_id):
     place.set_ambiance_rating(value)
     database.session.commit()
     return jsonify({"place_id": place.place_id, "ambiance": place.ambiance})
+
+@api.post("/places/<place_id>/rate/service")
+def rate_service(place_id):
+    place = get_place(place_id)
+    if not place:
+        return {"error": "unknown place id"}, 404
+    
+    value = parse_value(request.get_json() or {})
+
+    if value is None or not (0 <= value <= 5):
+        return {"error": "rating must be an integer 0-5"}, 400
+    
+    place.set_service_rating(value)
+    database.session.commit()
+    return jsonify({"place_id": place.place_id, "service": place.service})
+
+@api.post("/places/<place_id>/rate/wifiQuality")
+def rate_wifiQuality(place_id):
+    place = get_place(place_id)
+    if not place:
+        return {"error": "unknown place id"}, 404
+    
+    value = parse_value(request.get_json() or {})
+
+    if value is None or not (0 <= value <= 5):
+        return {"error": "rating must be an integer 0-5"}, 400
+    
+    place.set_wifiQuality_rating(value)
+    database.session.commit()
+    return jsonify({"place_id": place.place_id, "wifiQuality": place.wifiQuality})
+
+@api.post("/places/<place_id>/rate/vibe")
+def rate_vibe(place_id):
+    place = get_place(place_id)
+    if not place:
+        return {"error": "unknown place id"}, 404
+    
+    value = parse_value(request.get_json() or {})
+
+    if value is None or not (0 <= value <= 5):
+        return {"error": "rating must be an integer 0-5"}, 400
+    
+    place.set_vibe_rating(value)
+    database.session.commit()
+    return jsonify({"place_id": place.place_id, "vibe": place.vibe})

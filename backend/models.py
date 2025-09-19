@@ -17,9 +17,12 @@ class Place(database.Model):
     price = database.Column(database.Integer)
     taste = database.Column(database.Integer)
     ambiance = database.Column(database.Integer)
+    service = database.Column(database.Integer)
+    wifiQuality = database.Column(database.Integer)
+    vibe = database.Column(database.Integer)
 
-    def mark_visited(self):
-        self.visited = True
+    def toggle_visited(self):
+        self.visited = not self.visited;
     
     def set_price_rating(self, rating: int):
         self.price = rating
@@ -29,3 +32,12 @@ class Place(database.Model):
 
     def set_ambiance_rating(self, rating: int):
         self.ambiance = rating
+
+    def set_service_rating(self, rating: int):
+        self.service = rating
+
+    def set_wifiQuality_rating(self, rating: int):
+        self.wifiQuality = rating
+    
+    def set_vibe_rating(self, rating: int):
+        self.vibe = rating
