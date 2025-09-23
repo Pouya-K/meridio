@@ -17,4 +17,7 @@ def get_place(place_id):
         "price": place.price,
         "taste": place.taste,
         "ambiance": place.ambiance,
+        "service": place.service,
+        "wifiQuality": place.wifiQuality,
+        "vibe": place.vibe
     })

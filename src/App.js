@@ -3,6 +3,7 @@ import {useRef, useEffect, useState, useCallback} from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import Marker from './Marker';
+import { FaStar } from 'react-icons/fa';
 
 function App() {
   const mapRef = useRef();
@@ -10,10 +11,9 @@ function App() {
   const [mapReady, setMapReady] = useState(false);
   const [googlePlacesData, setGooglePlacesData] = useState();
   const [placeClicked, setPlaceClicked] = useState();
-  const [currentPlaceVisited, setCurrentPlaceVisited] = useState();
-  const [currentPlacePriceRating, setCurrentPlace] = useState()
-  const [currentPlaceTasteRating, setCurrentPlaceTasteRating] = useState();
-  const [currentPlaceAmbienceRating, setCurrentPlaceAmbienceRating] = useState();
+  const [placePrice, setPlacePrice] = useState()
+  const [placeTaste, setPlaceTaste] = useState();
+  const [placeAmbiance, setPlaceAmbiance] = useState();
 
   const mapBoxKey = process.env.REACT_APP_MAPBOX_API_KEY
   const googleAPIKey = process.env.REACT_APP_GOOGLE_PLACES_API_KEY
@@ -166,6 +166,9 @@ function App() {
       const enrichedPlace = {...place, _server: server}; //merges objects together in a list
       console.log(enrichedPlace);
       setPlaceClicked(enrichedPlace);
+      setPlaceAmbiance(server.ambiance);
+      setPlacePrice(server.price);
+      setPlaceTaste(server.taste);
       
       // Trigger map resize after a short delay to ensure smooth transition
       setTimeout(() => {
@@ -175,6 +178,42 @@ function App() {
       }, 300);
     } catch (e) {
       console.error("Failed loading place from backend: ", e)
+    }
+  }
+
+  const handlePriceClick = async (value) => {
+    try{
+      console.log("Price rating: " + value);
+      setPlacePrice(value);
+      await ratePrice(placeClicked.id, value);
+
+      setPlaceClicked({
+        ...placeClicked, //makes a copy of placeClicked, replaces _server object
+        _server: {
+          ...(placeClicked._server || {}), //makes a copy of current _server, updates price parameter
+          price: value
+        }}
+      );
+    } catch (e) {
+      console.error("Failed setting price rating: ", e)
+    }
+  }
+
+  const handleTasteClick = async (value) => {
+    try{
+      console.log("Taste Rating: " + value);
+      setPlaceTaste(value);
+      await rateTaste(placeClicked.id, value)
+
+      setPlaceClicked({
+        ...placeClicked, //makes a copy of placeClicked, replaces _server object
+        _server: {
+          ...(placeClicked._server || {}), //makes a copy of current _server, updates price parameter
+          taste: value
+        }}
+      );
+    } catch (e) {
+      console.error("Failed setting taste rating: ", e)
     }
   }
 
@@ -223,6 +262,7 @@ function App() {
                 place={place}
                 isActive={placeClicked?.id === place.id}
                 onClick={handlePlaceClicked}
+                beenVisited={false}
             />)
           })}
         </div>
@@ -262,6 +302,26 @@ function App() {
                     }}
                   />{' '}Visited
                 </label>
+              </div>
+
+              {/* NEW: Price rating (stars) */}
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Price</div>
+                <div>
+                  {[1, 2, 3, 4, 5].map((n) => {
+                    return (
+                      <FaStar
+                        key={n}
+                        size={24}
+                        color={(placePrice) >= n ? '#f5b301' : '#ccc'}
+                        onClick={() => handlePriceClick(n)}
+                        style={{
+                          cursor: 'pointer'
+                        }}
+                      />
+                    )
+                  })}
+                </div>
               </div>
 
             </div>

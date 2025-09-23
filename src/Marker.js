@@ -1,7 +1,7 @@
 import { useEffect, useRef} from "react";
 import mapboxgl from 'mapbox-gl'
 
-const Marker = ({map, place, isActive, onClick}) => {
+const Marker = ({map, place, isActive, onClick, beenVisited}) => {
     const {location} = place //the {} deconstruct the object, same as saying location = place.location
     const markerRef = useRef()
 
