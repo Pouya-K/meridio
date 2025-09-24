@@ -3,7 +3,7 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from models import database
 from config import Config
-from routes import places, visited, ratings, get_place  # noqa: F401
+from routes import places, visited, ratings, get_place, get_visited  # noqa: F401
 
 def create_app():
     app = Flask(__name__)

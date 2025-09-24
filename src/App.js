@@ -10,10 +10,17 @@ function App() {
   const mapContainerRef = useRef();
   const [mapReady, setMapReady] = useState(false);
   const [googlePlacesData, setGooglePlacesData] = useState();
+
   const [placeClicked, setPlaceClicked] = useState();
   const [placePrice, setPlacePrice] = useState()
   const [placeTaste, setPlaceTaste] = useState();
   const [placeAmbiance, setPlaceAmbiance] = useState();
+  const [placeService, setPlaceService] = useState();
+  const [placeWifiQuality, setPlaceWifiQuality] = useState();
+  const [placeVibe, setPlaceVibe] = useState();
+
+  const [visitedPlaces, setVisitedPlaces] = useState(() => new Set());
+  const [visitedPlacesLoaded, setVisitedPlacesLoaded] = useState(false);
 
   const mapBoxKey = process.env.REACT_APP_MAPBOX_API_KEY
   const googleAPIKey = process.env.REACT_APP_GOOGLE_PLACES_API_KEY
@@ -48,8 +55,38 @@ function App() {
   const toggleVisited = async (placeId) =>{
     try{
       await fetch (`${API_BASE}/places/${placeId}/visit`, { method: "POST" });
+      const currentlyVisited = placeClicked._server.visited;
+      if (currentlyVisited){ //unvisited, all ratings should reset
+        await handlePriceClick(0);
+        await handleTasteClick(0);
+        await handleAmbianceClick(0);
+        await handleServiceClick(0);
+        await handleWifiQualityClick(0);
+        await handleVibeClick(0);
+      }
+      setPlaceClicked({
+        ...placeClicked, //makes a copy of placeClicked, replaces _server object
+        _server: {
+          ...(placeClicked._server || {}), //makes a copy of current _server, updates visited parameter
+          visited: !currentlyVisited
+        }}
+      );
+      getAllVisited();
     } catch (error) {
       console.log(error)
+    }
+  }
+
+  const getAllVisited = async () => {
+    try {
+      const result = await fetch (`${API_BASE}/places/getVisited`);
+      const data = await result.json();
+      const newVisitedPlaces = new Set(data.map(p => p.place_id))
+      setVisitedPlaces(newVisitedPlaces);
+      setVisitedPlacesLoaded(true);
+    } catch (error){
+      console.log(error)
+      setVisitedPlacesLoaded(true); // Set to true even on error to prevent infinite waiting
     }
   }
 
@@ -80,6 +117,42 @@ function App() {
   const rateAmbiance = async (placeId, value) =>{
     try{
       await fetch(`${API_BASE}/places/${placeId}/rate/ambiance`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ value })
+      });
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  const rateService = async (placeId, value) =>{
+    try{
+      await fetch(`${API_BASE}/places/${placeId}/rate/service`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ value })
+      });
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  const rateWifiQuality = async (placeId, value) =>{
+    try{
+      await fetch(`${API_BASE}/places/${placeId}/rate/wifiQuality`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ value })
+      });
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  const rateVibe = async (placeId, value) =>{
+    try{
+      await fetch(`${API_BASE}/places/${placeId}/rate/vibe`, {
         method: "POST",
         headers: {"Content-Type":"application/json"},
         body: JSON.stringify({ value })
@@ -154,21 +227,21 @@ function App() {
         "userRatingCount": 431
       }
     ]
-    console.log(hardCodedData);
     setGooglePlacesData(hardCodedData);
   }, [])
 
   const handlePlaceClicked = async (place) => {
-    console.log("Clicked:", place.displayName?.text || "Unknown place")
     try {
       await ensurePlace(place);
       const server = await fetchPlace(place.id);
       const enrichedPlace = {...place, _server: server}; //merges objects together in a list
-      console.log(enrichedPlace);
       setPlaceClicked(enrichedPlace);
       setPlaceAmbiance(server.ambiance);
       setPlacePrice(server.price);
       setPlaceTaste(server.taste);
+      setPlaceService(server.service);
+      setPlaceWifiQuality(server.wifiQuality);
+      setPlaceVibe(server.vibe);
       
       // Trigger map resize after a short delay to ensure smooth transition
       setTimeout(() => {
@@ -183,7 +256,6 @@ function App() {
 
   const handlePriceClick = async (value) => {
     try{
-      console.log("Price rating: " + value);
       setPlacePrice(value);
       await ratePrice(placeClicked.id, value);
 
@@ -201,7 +273,6 @@ function App() {
 
   const handleTasteClick = async (value) => {
     try{
-      console.log("Taste Rating: " + value);
       setPlaceTaste(value);
       await rateTaste(placeClicked.id, value)
 
@@ -217,8 +288,78 @@ function App() {
     }
   }
 
+  const handleAmbianceClick = async (value) => {
+    try{
+      setPlaceAmbiance(value);
+      await rateAmbiance(placeClicked.id, value)
+
+      setPlaceClicked({
+        ...placeClicked, //makes a copy of placeClicked, replaces _server object
+        _server: {
+          ...(placeClicked._server || {}), //makes a copy of current _server, updates price parameter
+          ambiance: value
+        }}
+      );
+    } catch (e) {
+      console.error("Failed setting ambiance rating: ", e)
+    }
+  }
+
+  const handleServiceClick = async (value) => {
+    try{
+      setPlaceService(value);
+      await rateService(placeClicked.id, value)
+
+      setPlaceClicked({
+        ...placeClicked, //makes a copy of placeClicked, replaces _server object
+        _server: {
+          ...(placeClicked._server || {}), //makes a copy of current _server, updates price parameter
+          service: value
+        }}
+      );
+    } catch (e) {
+      console.error("Failed setting service rating: ", e)
+    }
+  }
+
+  const handleWifiQualityClick = async (value) => {
+    try{
+      setPlaceWifiQuality(value);
+      await rateWifiQuality(placeClicked.id, value)
+
+      setPlaceClicked({
+        ...placeClicked, //makes a copy of placeClicked, replaces _server object
+        _server: {
+          ...(placeClicked._server || {}), //makes a copy of current _server, updates price parameter
+          wifiQuality: value
+        }}
+      );
+    } catch (e) {
+      console.error("Failed setting wifi quality rating: ", e)
+    }
+  }
+
+  const handleVibeClick = async (value) => {
+    try{
+      setPlaceVibe(value);
+      await rateVibe(placeClicked.id, value)
+
+      setPlaceClicked({
+        ...placeClicked, //makes a copy of placeClicked, replaces _server object
+        _server: {
+          ...(placeClicked._server || {}), //makes a copy of current _server, updates price parameter
+          vibe: value
+        }}
+      );
+    } catch (e) {
+      console.error("Failed setting vibe rating: ", e)
+    }
+  }
+
   //load map
   useEffect(() => {
+    getAllVisited();
+
     mapboxgl.accessToken = mapBoxKey
     mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -255,14 +396,14 @@ function App() {
       <div className="content-container">
         <div id="Map-container" ref={mapContainerRef} className={placeClicked ? 'selected' : ''}>
           {/* load markers */}
-          {mapReady && googlePlacesData && googlePlacesData?.map((place) =>{
+          {mapReady && googlePlacesData && visitedPlacesLoaded && googlePlacesData?.map((place) =>{
             return (<Marker
                 key={place.id}
                 map={mapRef.current}
                 place={place}
                 isActive={placeClicked?.id === place.id}
                 onClick={handlePlaceClicked}
-                beenVisited={false}
+                beenVisited={visitedPlaces.has(place.id)}
             />)
           })}
         </div>
@@ -297,14 +438,13 @@ function App() {
                       await toggleVisited(placeClicked.id);
 
                       const server = await fetchPlace(placeClicked.id);
-                      console.log(server)
                       setPlaceClicked({ ...placeClicked, _server: server });
                     }}
                   />{' '}Visited
                 </label>
               </div>
 
-              {/* NEW: Price rating (stars) */}
+              {/* Price rating (stars) */}
               <div style={{ marginTop: 10 }}>
                 <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Price</div>
                 <div>
@@ -314,9 +454,10 @@ function App() {
                         key={n}
                         size={24}
                         color={(placePrice) >= n ? '#f5b301' : '#ccc'}
-                        onClick={() => handlePriceClick(n)}
+                        onClick={placeClicked._server?.visited ? () => handlePriceClick(n) : undefined}
                         style={{
-                          cursor: 'pointer'
+                          cursor: placeClicked._server?.visited ? 'pointer' : 'not-allowed',
+                          opacity: placeClicked._server?.visited ? 1 : 0.5
                         }}
                       />
                     )
@@ -324,6 +465,111 @@ function App() {
                 </div>
               </div>
 
+              {/* Taste rating (stars) */}
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Taste</div>
+                <div>
+                  {[1, 2, 3, 4, 5].map((n) => {
+                    return (
+                      <FaStar
+                        key={n}
+                        size={24}
+                        color={(placeTaste) >= n ? '#f5b301' : '#ccc'}
+                        onClick={placeClicked._server?.visited ? () => handleTasteClick(n) : undefined}
+                        style={{
+                          cursor: placeClicked._server?.visited ? 'pointer' : 'not-allowed',
+                          opacity: placeClicked._server?.visited ? 1 : 0.5
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Ambiance rating (stars) */}
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Ambiance</div>
+                <div>
+                  {[1, 2, 3, 4, 5].map((n) => {
+                    return (
+                      <FaStar
+                        key={n}
+                        size={24}
+                        color={(placeAmbiance) >= n ? '#f5b301' : '#ccc'}
+                        onClick={placeClicked._server?.visited ? () => handleAmbianceClick(n) : undefined}
+                        style={{
+                          cursor: placeClicked._server?.visited ? 'pointer' : 'not-allowed',
+                          opacity: placeClicked._server?.visited ? 1 : 0.5
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Service rating (stars) */}
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Service</div>
+                <div>
+                  {[1, 2, 3, 4, 5].map((n) => {
+                    return (
+                      <FaStar
+                        key={n}
+                        size={24}
+                        color={(placeService) >= n ? '#f5b301' : '#ccc'}
+                        onClick={placeClicked._server?.visited ? () => handleServiceClick(n) : undefined}
+                        style={{
+                          cursor: placeClicked._server?.visited ? 'pointer' : 'not-allowed',
+                          opacity: placeClicked._server?.visited ? 1 : 0.5
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Wifi Quality rating (stars) */}
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Wifi Quality</div>
+                <div>
+                  {[1, 2, 3, 4, 5].map((n) => {
+                    return (
+                      <FaStar
+                        key={n}
+                        size={24}
+                        color={(placeWifiQuality) >= n ? '#f5b301' : '#ccc'}
+                        onClick={placeClicked._server?.visited ? () => handleWifiQualityClick(n) : undefined}
+                        style={{
+                          cursor: placeClicked._server?.visited ? 'pointer' : 'not-allowed',
+                          opacity: placeClicked._server?.visited ? 1 : 0.5
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Vibe rating (stars) */}
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Vibe</div>
+                <div>
+                  {[1, 2, 3, 4, 5].map((n) => {
+                    return (
+                      <FaStar
+                        key={n}
+                        size={24}
+                        color={(placeVibe) >= n ? '#f5b301' : '#ccc'}
+                        onClick={placeClicked._server?.visited ? () => handleVibeClick(n) : undefined}
+                        style={{
+                          cursor: placeClicked._server?.visited ? 'pointer' : 'not-allowed',
+                          opacity: placeClicked._server?.visited ? 1 : 0.5
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+              
             </div>
           )}
         </div>

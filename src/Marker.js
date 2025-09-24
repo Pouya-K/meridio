@@ -2,10 +2,16 @@ import { useEffect, useRef} from "react";
 import mapboxgl from 'mapbox-gl'
 
 const Marker = ({map, place, isActive, onClick, beenVisited}) => {
-    const {location} = place //the {} deconstruct the object, same as saying location = place.location
-    const markerRef = useRef()
+    const {location} = place; //the {} deconstruct the object, same as saying location = place.location
+    const markerRef = useRef();
+    const name = place.displayName?.text || 'Unknown Cafe';
+
+    //Don't render if name is in blocked list
+    const blockedCafes = ["McDonald's", "Starbucks", "Tim Hortons"];
+    const isBlocked = blockedCafes.includes(name);
 
     useEffect(() => {
+        if (isBlocked) return;
         // Create a simple popup for hover
         const popup = new mapboxgl.Popup({
             closeButton: false,
@@ -15,7 +21,6 @@ const Marker = ({map, place, isActive, onClick, beenVisited}) => {
         });
 
         // Set popup content
-        const name = place.displayName?.text || 'Unknown Cafe';
         const rating = place.rating ? place.rating.toFixed(1) : 'N/A';
         popup.setHTML(`
             <div style="font-weight: bold; margin-bottom: 2px; color: #000000; font-size: 14px;">${name}</div>
@@ -25,10 +30,13 @@ const Marker = ({map, place, isActive, onClick, beenVisited}) => {
         // Create custom coffee cup marker
         const el = document.createElement('div');
         el.innerHTML = '☕';
-        // Set initial color based on isActive prop
-        const backgroundColor = isActive 
-            ? '#e8b425' 
-            : '#e83c25';
+        // Set initial color based on isActive and hasBeenVisited prop
+        let backgroundColor = '#e83c25';
+        if (beenVisited){
+            backgroundColor = '#00cc00';
+        } else if (isActive){
+            backgroundColor = '#e8b425';
+        }
         
         el.style.cssText = `
             width: 32px;
@@ -75,21 +83,23 @@ const Marker = ({map, place, isActive, onClick, beenVisited}) => {
         });
 
         return () => {
-            markerRef.current.remove()
+            if (markerRef.current) markerRef.current.remove()
         }
-    }, [onClick, place, map])
+    }, [isBlocked, onClick, place, map, name, location, beenVisited, isActive])
 
-    // Update marker color when isActive changes
+    // Update marker color when isActive or beenVisited changes
     useEffect(() => {
-        if (markerRef.current) {
-            const markerElement = markerRef.current.getElement();
-            const backgroundColor = isActive 
-            ? '#e8b425' 
-            : '#e83c25';
-            
-            markerElement.style.background = backgroundColor;
+        if (!markerRef.current) return
+        const markerElement = markerRef.current.getElement();
+        let backgroundColor = '#e83c25'; // red default
+        if (beenVisited) {
+            backgroundColor = '#00cc00'; // green
+        } else if (isActive) {
+            backgroundColor = '#e8b425'; // yellow
         }
-    }, [isActive])
+        
+        markerElement.style.background = backgroundColor;
+    }, [isActive, beenVisited])
 
     return null
 }

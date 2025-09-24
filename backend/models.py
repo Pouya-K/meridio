@@ -41,3 +41,19 @@ class Place(database.Model):
     
     def set_vibe_rating(self, rating: int):
         self.vibe = rating
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'place_id': self.place_id,
+            'place_name': self.place_name,
+            'place_address': self.place_address,
+            'visited': self.visited,
+            'price': self.price,
+            'taste': self.taste,
+            'ambiance': self.ambiance,
+            'service': self.service,
+            'wifiQuality': self.wifiQuality,
+            'vibe': self.vibe,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
