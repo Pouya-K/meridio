@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 from models import database
 from config import Config
 from routes import places, visited, ratings, get_place, get_visited  # noqa: F401
+from routes import api  # blueprint
 
 def create_app():
     app = Flask(__name__)
@@ -14,7 +15,6 @@ def create_app():
     database.init_app(app)
     Migrate(app, database)
 
-    from routes import api  # blueprint
     app.register_blueprint(api)
 
     @app.get("/health")

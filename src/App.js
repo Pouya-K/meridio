@@ -3,7 +3,7 @@ import {useRef, useEffect, useState, useCallback} from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import Marker from './Marker';
-import { FaStar } from 'react-icons/fa';
+import { FaWifi, FaDollarSign, FaCoffee, FaHeadphonesAlt, FaConciergeBell, FaGlassCheers } from 'react-icons/fa';
 
 function App() {
   const mapRef = useRef();
@@ -21,11 +21,15 @@ function App() {
 
   const [visitedPlaces, setVisitedPlaces] = useState(() => new Set());
   const [visitedPlacesLoaded, setVisitedPlacesLoaded] = useState(false);
+  const [typewriterText, setTypewriterText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [typewriterIndex, setTypewriterIndex] = useState(0);
 
   const mapBoxKey = process.env.REACT_APP_MAPBOX_API_KEY
   const googleAPIKey = process.env.REACT_APP_GOOGLE_PLACES_API_KEY
   const API_BASE = process.env.REACT_APP_API_BASE
 
+  //Calls to backend to add places to database
   const ensurePlace = async (place) =>{
       try{
         await fetch(`${API_BASE}/places`, {
@@ -42,6 +46,7 @@ function App() {
       }
   }
 
+  //Calls to backend to fetch places from database
   const fetchPlace = async (placeId) =>{
     try{
       const result = await fetch (`${API_BASE}/places/${placeId}`);
@@ -52,6 +57,7 @@ function App() {
     }
   }
 
+  //Calls to backend to change visited status
   const toggleVisited = async (placeId) =>{
     try{
       await fetch (`${API_BASE}/places/${placeId}/visit`, { method: "POST" });
@@ -77,6 +83,7 @@ function App() {
     }
   }
 
+  //Calls to backend to fetch all visited places
   const getAllVisited = async () => {
     try {
       const result = await fetch (`${API_BASE}/places/getVisited`);
@@ -90,6 +97,7 @@ function App() {
     }
   }
 
+  //Calls to backend to change ratings
   const ratePrice = async (placeId, value) =>{
     try{
       await fetch(`${API_BASE}/places/${placeId}/rate/price`, {
@@ -162,79 +170,12 @@ function App() {
     }
   }
 
-  const getGoogleData = useCallback(async () =>{
-    // const url = "https://places.googleapis.com/v1/places:searchNearby"
-    // try{
-    //     const result = await fetch(url, {
-    //       method: "POST",
-    //       headers: {
-    //         "Content-Type": "application/json; charset=utf-8",
-    //         "X-Goog-Api-Key": googleAPIKey,
-    //         "X-Goog-FieldMask": "places.displayName,places.id,places.formattedAddress,places.userRatingCount,places.rating,places.location"
-    //       },
-    //       body: JSON.stringify({
-    //         includedTypes: [
-    //             "coffee_shop", "cafe"
-    //         ],
-    //         maxResultCount: 20,
-    //         locationRestriction: {
-    //             circle: {
-    //                 center: {
-    //                     latitude: 43.663448,
-    //                     longitude: -79.395978
-    //                 },
-    //                 radius: 900
-    //             }
-    //         }
-    //     })
-    //     })
-        
-    //     if (!result.ok){
-    //       const errText = await result.text();
-    //       throw new Error(`HTTP ${result.status}: ${errText}`);
-    //     }
-
-    //     const json = await result.json();
-    //     console.log(json);
-    //     setGooglePlacesData(json);
-
-    // } catch (error) {
-    //   console.error(error)
-    // }
-    const hardCodedData = [
-      {
-        "displayName": {"text": 'Nabulu Coffee', "languageCode": 'en'},
-        "formattedAddress": '6 St Joseph St, Toronto, ON M4Y 1J7, Canada', 
-        "id": 'ChIJMxdFNAA1K4gRqAgyuXHgqRg',
-        "location": {"latitude": 43.6660706, "longitude": -79.38562290000002},
-        "rating": 4.6,
-        "userRatingCount": 364
-      },
-      {
-        "displayName": {"text": 'NEO COFFEE BAR BAY X COLLEGE', "languageCode": 'en'},
-        "formattedAddress": '770 Bay St. Unit 3, Toronto, ON M5G 0A6, Canada', 
-        "id": 'ChIJY7qlf8o1K4gR9A35PHYzbNE',
-        "location": {"latitude": 43.660136699999995, "longitude": -79.3858692},
-        "rating": 4.5,
-        "userRatingCount": 1805
-      },
-      {
-        "displayName": {"text": 'Butter & Blue', "languageCode": 'en'},
-        "formattedAddress": '7 Baldwin St, Toronto, ON M5T 1L1, Canada', 
-        "id": 'ChIJp6TlSbg1K4gRxW07pIYvIA0',
-        "location": {"latitude": 43.656058200000004, "longitude": -79.3925864},
-        "rating": 4.6,
-        "userRatingCount": 431
-      }
-    ]
-    setGooglePlacesData(hardCodedData);
-  }, [])
-
   const handlePlaceClicked = async (place) => {
     try {
       await ensurePlace(place);
       const server = await fetchPlace(place.id);
       const enrichedPlace = {...place, _server: server}; //merges objects together in a list
+      console.log(enrichedPlace);
       setPlaceClicked(enrichedPlace);
       setPlaceAmbiance(server.ambiance);
       setPlacePrice(server.price);
@@ -355,6 +296,47 @@ function App() {
       console.error("Failed setting vibe rating: ", e)
     }
   }
+  
+  const getGoogleData = useCallback(async () =>{
+    const url = "https://places.googleapis.com/v1/places:searchNearby"
+    try{
+        const result = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "X-Goog-Api-Key": googleAPIKey,
+            "X-Goog-FieldMask": "places.displayName,places.id,places.formattedAddress,places.userRatingCount,places.rating,places.location"
+          },
+          body: JSON.stringify({
+            includedTypes: [
+                "coffee_shop", "cafe"
+            ],
+            maxResultCount: 20,
+            locationRestriction: {
+                circle: {
+                    center: {
+                        latitude: 43.663448,
+                        longitude: -79.395978
+                    },
+                    radius: 900
+                }
+            }
+        })
+        })
+        
+        if (!result.ok){
+          const errText = await result.text();
+          throw new Error(`HTTP ${result.status}: ${errText}`);
+        }
+
+        const json = await result.json();
+        console.log(json);
+        setGooglePlacesData(json);
+
+    } catch (error) {
+      console.error(error)
+    }
+  }, [])
 
   //load map
   useEffect(() => {
@@ -383,196 +365,208 @@ function App() {
     }
   }, [])
 
+  // Typewriter effect for title
+  useEffect(() => {
+    const words = ['Anywhere', 'Anytime'];
+    const currentWord = words[typewriterIndex];
+    
+    const timeout = setTimeout(() => {
+      if (!isDeleting) {
+        // Typing
+        if (typewriterText.length < currentWord.length) {
+          setTypewriterText(currentWord.substring(0, typewriterText.length + 1));
+        } else {
+          // Finished typing, wait then start deleting
+          setTimeout(() => setIsDeleting(true), 2000);
+        }
+      } else {
+        // Deleting
+        if (typewriterText.length > 0) {
+          setTypewriterText(typewriterText.substring(0, typewriterText.length - 1));
+        } else {
+          // Finished deleting, move to next word
+          setIsDeleting(false);
+          setTypewriterIndex((prev) => (prev + 1) % words.length);
+        }
+      }
+    }, isDeleting ? 50 : 100);
+
+    return () => clearTimeout(timeout);
+  }, [typewriterText, isDeleting, typewriterIndex])
+
+  // Initialize typewriter with first word
+  useEffect(() => {
+    if (typewriterText === '' && !isDeleting) {
+      setTypewriterText('A');
+    }
+  }, [])
+
+  // Main App Component
   return (
     <>
       <div className="Title">
         <header className="Title-header">
           <p>
-           Meridio
+           Meridio: Find Your Perfect Spot - <span className="typewriter-text">{typewriterText}</span><span className="typewriter-cursor">|</span>
           </p>
         </header>
       </div>
 
-      <div className="content-container">
-        <div id="Map-container" ref={mapContainerRef} className={placeClicked ? 'selected' : ''}>
-          {/* load markers */}
-          {mapReady && googlePlacesData && visitedPlacesLoaded && googlePlacesData?.map((place) =>{
-            return (<Marker
-                key={place.id}
-                map={mapRef.current}
-                place={place}
-                isActive={placeClicked?.id === place.id}
-                onClick={handlePlaceClicked}
-                beenVisited={visitedPlaces.has(place.id)}
-            />)
-          })}
-        </div>
+      {/* Main Map Container (no resizing, relative for - positioning) */}
+      <div id="Map-container" ref={mapContainerRef}>
+        {mapReady && googlePlacesData && visitedPlacesLoaded && googlePlacesData.places.map((place) => (
+          <Marker
+            key={place.id}
+            map={mapRef.current}
+            place={place}
+            isActive={placeClicked?.id === place.id}
+            onClick={handlePlaceClicked}
+            beenVisited={visitedPlaces.has(place.id)}
+          />
+        ))}
 
-        {/* Details Panel */}
-        <div className={`details-panel ${placeClicked ? 'visible' : ''}`}>
-          {placeClicked && (
-            <div className="place-details">
-              <div className="place-header">
-                <div className="place-name">
-                  {placeClicked.displayName?.text || 'Unknown Cafe'}
-                </div>
-
-                <div className="place-meta">
-                  <span className="place-rating">⭐ {placeClicked.rating ? placeClicked.rating.toFixed(1) : 'N/A'}</span>
-                  <span className="place-user-count">
-                    {placeClicked.userRatingCount ? `${placeClicked.userRatingCount} reviews` : 'No reviews'}
-                  </span>
-                </div>
-              </div>
-              
-              <div style={{marginTop: 12}}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={!!placeClicked._server?.visited}
-                    onChange={async (e) => {
-                      // create place if not already created
-                      await ensurePlace(placeClicked)
-
-                      //toggle visited
-                      await toggleVisited(placeClicked.id);
-
-                      const server = await fetchPlace(placeClicked.id);
-                      setPlaceClicked({ ...placeClicked, _server: server });
-                    }}
-                  />{' '}Visited
-                </label>
-              </div>
-
-              {/* Price rating (stars) */}
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Price</div>
-                <div>
-                  {[1, 2, 3, 4, 5].map((n) => {
-                    return (
-                      <FaStar
-                        key={n}
-                        size={24}
-                        color={(placePrice) >= n ? '#f5b301' : '#ccc'}
-                        onClick={placeClicked._server?.visited ? () => handlePriceClick(n) : undefined}
-                        style={{
-                          cursor: placeClicked._server?.visited ? 'pointer' : 'not-allowed',
-                          opacity: placeClicked._server?.visited ? 1 : 0.5
-                        }}
-                      />
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Taste rating (stars) */}
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Taste</div>
-                <div>
-                  {[1, 2, 3, 4, 5].map((n) => {
-                    return (
-                      <FaStar
-                        key={n}
-                        size={24}
-                        color={(placeTaste) >= n ? '#f5b301' : '#ccc'}
-                        onClick={placeClicked._server?.visited ? () => handleTasteClick(n) : undefined}
-                        style={{
-                          cursor: placeClicked._server?.visited ? 'pointer' : 'not-allowed',
-                          opacity: placeClicked._server?.visited ? 1 : 0.5
-                        }}
-                      />
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Ambiance rating (stars) */}
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Ambiance</div>
-                <div>
-                  {[1, 2, 3, 4, 5].map((n) => {
-                    return (
-                      <FaStar
-                        key={n}
-                        size={24}
-                        color={(placeAmbiance) >= n ? '#f5b301' : '#ccc'}
-                        onClick={placeClicked._server?.visited ? () => handleAmbianceClick(n) : undefined}
-                        style={{
-                          cursor: placeClicked._server?.visited ? 'pointer' : 'not-allowed',
-                          opacity: placeClicked._server?.visited ? 1 : 0.5
-                        }}
-                      />
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Service rating (stars) */}
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Service</div>
-                <div>
-                  {[1, 2, 3, 4, 5].map((n) => {
-                    return (
-                      <FaStar
-                        key={n}
-                        size={24}
-                        color={(placeService) >= n ? '#f5b301' : '#ccc'}
-                        onClick={placeClicked._server?.visited ? () => handleServiceClick(n) : undefined}
-                        style={{
-                          cursor: placeClicked._server?.visited ? 'pointer' : 'not-allowed',
-                          opacity: placeClicked._server?.visited ? 1 : 0.5
-                        }}
-                      />
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Wifi Quality rating (stars) */}
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Wifi Quality</div>
-                <div>
-                  {[1, 2, 3, 4, 5].map((n) => {
-                    return (
-                      <FaStar
-                        key={n}
-                        size={24}
-                        color={(placeWifiQuality) >= n ? '#f5b301' : '#ccc'}
-                        onClick={placeClicked._server?.visited ? () => handleWifiQualityClick(n) : undefined}
-                        style={{
-                          cursor: placeClicked._server?.visited ? 'pointer' : 'not-allowed',
-                          opacity: placeClicked._server?.visited ? 1 : 0.5
-                        }}
-                      />
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Vibe rating (stars) */}
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Vibe</div>
-                <div>
-                  {[1, 2, 3, 4, 5].map((n) => {
-                    return (
-                      <FaStar
-                        key={n}
-                        size={24}
-                        color={(placeVibe) >= n ? '#f5b301' : '#ccc'}
-                        onClick={placeClicked._server?.visited ? () => handleVibeClick(n) : undefined}
-                        style={{
-                          cursor: placeClicked._server?.visited ? 'pointer' : 'not-allowed',
-                          opacity: placeClicked._server?.visited ? 1 : 0.5
-                        }}
-                      />
-                    )
-                  })}
-                </div>
-              </div>
-              
+        {/* Overlay at bottom left */}
+        {placeClicked && (
+          <div className="map-overlay">
+            <div className="place-name">{placeClicked.displayName?.text || 'Unknown Cafe'}</div>
+            <div className="place-rating">⭐ {placeClicked.rating ?? 'N/A'}</div>
+            <div className="place-user-count">
+              {placeClicked.userRatingCount ? `${placeClicked.userRatingCount} reviews` : 'No reviews available'}
             </div>
-          )}
-        </div>
+            
+            <div className="overlay-visited">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={!!placeClicked._server?.visited}
+                  onChange={async (e) => {
+                    await ensurePlace(placeClicked)
+                    await toggleVisited(placeClicked.id);
+                    const server = await fetchPlace(placeClicked.id);
+                    setPlaceClicked({ ...placeClicked, _server: server });
+                  }}
+                />{' '}Visited?
+              </label>
+            </div>
+
+            {/* Price rating (stars) */}
+            <div className="overlay-section">
+              <div className="overlay-label">Price</div>
+              <div>
+                {[1, 2, 3, 4, 5].map((n) => {
+                  const enabled = !!placeClicked._server?.visited;
+                  return (
+                    <FaDollarSign
+                      key={n}
+                      size={24}
+                      color={(placePrice) >= n ? '#1daf02' : '#ccc'}
+                      onClick={enabled ? () => handlePriceClick(n) : undefined}
+                      className={enabled ? 'star' : 'star disabled'}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Taste rating (stars) */}
+            <div className="overlay-section">
+              <div className="overlay-label">Taste</div>
+              <div>
+                {[1, 2, 3, 4, 5].map((n) => {
+                  const enabled = !!placeClicked._server?.visited;
+                  return (
+                    <FaCoffee
+                      key={n}
+                      size={24}
+                      color={(placeTaste) >= n ? '#6F4E37' : '#ccc'}
+                      onClick={enabled ? () => handleTasteClick(n) : undefined}
+                      className={enabled ? 'star' : 'star disabled'}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Ambiance rating (stars) */}
+            <div className="overlay-section">
+              <div className="overlay-label">Ambiance</div>
+              <div>
+                {[1, 2, 3, 4, 5].map((n) => {
+                  const enabled = !!placeClicked._server?.visited;
+                  return (
+                    <FaGlassCheers
+                      key={n}
+                      size={24}
+                      color={(placeAmbiance) >= n ? '#D29F51' : '#ccc'}
+                      onClick={enabled ? () => handleAmbianceClick(n) : undefined}
+                      className={enabled ? 'star' : 'star disabled'}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Wifi Quality rating (stars) */}
+            <div className="overlay-section">
+              <div className="overlay-label">Wifi Quality</div>
+              <div>
+                {[1, 2, 3, 4, 5].map((n) => {
+                  const enabled = !!placeClicked._server?.visited;
+                  return (
+                    <FaWifi
+                      key={n}
+                      size={24}
+                      color={(placeWifiQuality) >= n ? '#00008B' : '#ccc'}
+                      onClick={enabled ? () => handleWifiQualityClick(n) : undefined}
+                      className={enabled ? 'star' : 'star disabled'}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Service rating (stars) */}
+            <div className="overlay-section">
+              <div className="overlay-label">Service</div>
+              <div>
+                {[1, 2, 3, 4, 5].map((n) => {
+                  const enabled = !!placeClicked._server?.visited;
+                  return (
+                    <FaConciergeBell
+                      key={n}
+                      size={24}
+                      color={(placeService) >= n ? '#FFDE00' : '#ccc'}
+                      onClick={enabled ? () => handleServiceClick(n) : undefined}
+                      className={enabled ? 'star' : 'star disabled'}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Vibe rating (stars) */}
+            <div className="overlay-section">
+              <div className="overlay-label">Vibe</div>
+              <div>
+                {[1, 2, 3, 4, 5].map((n) => {
+                  const enabled = !!placeClicked._server?.visited;
+                  return (
+                    <FaHeadphonesAlt
+                      key={n}
+                      size={24}
+                      color={(placeVibe) >= n ? '#00008B' : '#ccc'}
+                      onClick={enabled ? () => handleVibeClick(n) : undefined}
+                      className={enabled ? 'star' : 'star disabled'}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Close Button */}
+            <button className="overlay-close" onClick={() => setPlaceClicked(null)}>Close</button>
+          </div>
+        )}
       </div>
     </>
   );
